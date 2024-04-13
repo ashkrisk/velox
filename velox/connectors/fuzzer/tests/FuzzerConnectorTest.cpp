@@ -32,8 +32,7 @@ TEST_F(FuzzerConnectorTest, singleSplit) {
   auto type = ROW({BIGINT(), DOUBLE(), VARCHAR()});
 
   auto plan = PlanBuilder()
-                  .startTableScan()
-                  .outputType(type)
+                  .startTableScan(type)
                   .tableHandle(makeFuzzerTableHandle())
                   .endTableScan()
                   .planNode();
@@ -48,8 +47,7 @@ TEST_F(FuzzerConnectorTest, floatingPoints) {
   auto type = ROW({REAL(), DOUBLE()});
 
   auto plan = PlanBuilder()
-                  .startTableScan()
-                  .outputType(type)
+                  .startTableScan(type)
                   .tableHandle(makeFuzzerTableHandle())
                   .endTableScan()
                   .planNode();
@@ -68,8 +66,7 @@ TEST_F(FuzzerConnectorTest, complexTypes) {
   });
 
   auto plan = PlanBuilder()
-                  .startTableScan()
-                  .outputType(type)
+                  .startTableScan(type)
                   .tableHandle(makeFuzzerTableHandle())
                   .endTableScan()
                   .planNode();
@@ -85,8 +82,7 @@ TEST_F(FuzzerConnectorTest, multipleSplits) {
   auto type = ROW({BIGINT(), DOUBLE(), VARCHAR()});
 
   auto plan = PlanBuilder()
-                  .startTableScan()
-                  .outputType(type)
+                  .startTableScan(type)
                   .tableHandle(makeFuzzerTableHandle())
                   .endTableScan()
                   .planNode();
@@ -106,8 +102,7 @@ TEST_F(FuzzerConnectorTest, randomTypes) {
     auto type = VectorFuzzer({}, pool()).randRowType();
 
     auto plan = PlanBuilder()
-                    .startTableScan()
-                    .outputType(type)
+                    .startTableScan(type)
                     .tableHandle(makeFuzzerTableHandle())
                     .endTableScan()
                     .planNode();
@@ -122,14 +117,12 @@ TEST_F(FuzzerConnectorTest, reproducible) {
   auto type = ROW({BIGINT(), ARRAY(INTEGER()), VARCHAR()});
 
   auto plan1 = PlanBuilder()
-                   .startTableScan()
-                   .outputType(type)
+                   .startTableScan(type)
                    .tableHandle(makeFuzzerTableHandle(/*fuzerSeed=*/1234))
                    .endTableScan()
                    .planNode();
   auto plan2 = PlanBuilder()
-                   .startTableScan()
-                   .outputType(type)
+                   .startTableScan(type)
                    .tableHandle(makeFuzzerTableHandle(/*fuzerSeed=*/1234))
                    .endTableScan()
                    .planNode();

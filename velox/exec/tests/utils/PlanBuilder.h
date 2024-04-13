@@ -166,7 +166,10 @@ class PlanBuilder {
   /// builder arguments will be ignored.
   class TableScanBuilder {
    public:
-    TableScanBuilder(PlanBuilder& builder) : planBuilder_(builder) {}
+    TableScanBuilder(PlanBuilder& builder, RowTypePtr outputType)
+        : planBuilder_(builder), outputType_(std::move(outputType)) {
+      VELOX_CHECK_NOT_NULL(outputType_, "outputType cannot be null");
+    }
 
     /// @param tableName The name of the table to scan.
     TableScanBuilder& tableName(std::string tableName) {
@@ -177,13 +180,6 @@ class PlanBuilder {
     /// @param connectorId The id of the connector to scan.
     TableScanBuilder& connectorId(std::string connectorId) {
       connectorId_ = std::move(connectorId);
-      return *this;
-    }
-
-    /// @param outputType List of column names and types to read from the table.
-    /// This property is required.
-    TableScanBuilder& outputType(RowTypePtr outputType) {
-      outputType_ = std::move(outputType);
       return *this;
     }
 
@@ -277,8 +273,9 @@ class PlanBuilder {
   };
 
   /// Start a TableScanBuilder.
-  TableScanBuilder& startTableScan() {
-    tableScanBuilder_.reset(new TableScanBuilder(*this));
+  /// @param outputType List of column names and types to read from the table.
+  TableScanBuilder& startTableScan(RowTypePtr outputType) {
+    tableScanBuilder_.reset(new TableScanBuilder(*this, std::move(outputType)));
     return *tableScanBuilder_;
   }
 

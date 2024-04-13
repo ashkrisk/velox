@@ -242,8 +242,8 @@ TEST_F(PlanBuilderTest, windowFrame) {
 
 TEST_F(PlanBuilderTest, missingOutputType) {
   VELOX_ASSERT_THROW(
-      PlanBuilder().startTableScan().endTableScan(),
-      "outputType must be specified");
+      PlanBuilder().startTableScan(RowTypePtr{}).endTableScan(),
+      "outputType cannot be null");
 }
 
 } // namespace facebook::velox::exec::test

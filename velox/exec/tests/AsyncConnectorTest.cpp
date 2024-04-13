@@ -193,8 +193,7 @@ TEST_F(AsyncConnectorTest, basic) {
   auto tableHandle = std::make_shared<TestTableHandle>();
   core::PlanNodeId scanId;
   auto plan = PlanBuilder()
-                  .startTableScan()
-                  .outputType(ROW({"a"}, {BIGINT()}))
+                  .startTableScan(ROW({"a"}, {BIGINT()}))
                   .tableHandle(tableHandle)
                   .endTableScan()
                   .capturePlanNodeId(scanId)

@@ -127,8 +127,7 @@ TEST_F(TpchConnectorTest, singleColumnWithAlias) {
   auto outputType = ROW({aliasedName}, {VARCHAR()});
   auto plan =
       PlanBuilder()
-          .startTableScan()
-          .outputType(outputType)
+          .startTableScan(outputType)
           .tableHandle(std::make_shared<TpchTableHandle>(
               kTpchConnectorId, Table::TBL_NATION))
           .assignments({
@@ -153,8 +152,7 @@ TEST_F(TpchConnectorTest, singleColumnWithAlias) {
 
 void TpchConnectorTest::runScaleFactorTest(double scaleFactor) {
   auto plan = PlanBuilder()
-                  .startTableScan()
-                  .outputType(ROW({}, {}))
+                  .startTableScan(ROW({}, {}))
                   .tableHandle(std::make_shared<TpchTableHandle>(
                       kTpchConnectorId, Table::TBL_SUPPLIER, scaleFactor))
                   .endTableScan()
@@ -182,8 +180,7 @@ TEST_F(TpchConnectorTest, lineitemTinyRowCount) {
   // Lineitem row count depends on the orders.
   // Verify against Java tiny result.
   auto plan = PlanBuilder()
-                  .startTableScan()
-                  .outputType(ROW({}, {}))
+                  .startTableScan(ROW({}, {}))
                   .tableHandle(std::make_shared<TpchTableHandle>(
                       kTpchConnectorId, Table::TBL_LINEITEM, 0.01))
                   .endTableScan()

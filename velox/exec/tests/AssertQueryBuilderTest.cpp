@@ -99,8 +99,7 @@ TEST_F(AssertQueryBuilderTest, hiveSplits) {
 
   AssertQueryBuilder(
       PlanBuilder()
-          .startTableScan()
-          .outputType(ROW({"c0", "ds"}, {INTEGER(), VARCHAR()}))
+          .startTableScan(ROW({"c0", "ds"}, {INTEGER(), VARCHAR()}))
           .tableHandle(makeTableHandle())
           .assignments(assignments)
           .endTableScan()

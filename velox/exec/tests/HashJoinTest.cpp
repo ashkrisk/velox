@@ -4226,8 +4226,7 @@ TEST_F(HashJoinTest, dynamicFilters) {
 
     core::PlanNodeId probeScanId;
     auto op = PlanBuilder(planNodeIdGenerator, pool_.get())
-                  .startTableScan()
-                  .outputType(scanOutputType)
+                  .startTableScan(scanOutputType)
                   .assignments(assignments)
                   .endTableScan()
                   .capturePlanNodeId(probeScanId)
@@ -4819,8 +4818,7 @@ TEST_F(HashJoinTest, dynamicFiltersAppliedToPreloadedSplits) {
   auto planNodeIdGenerator = std::make_shared<core::PlanNodeIdGenerator>();
   auto op =
       PlanBuilder(planNodeIdGenerator)
-          .startTableScan()
-          .outputType(outputType)
+          .startTableScan(outputType)
           .assignments(assignments)
           .endTableScan()
           .capturePlanNodeId(probeScanId)
@@ -5087,8 +5085,7 @@ TEST_F(HashJoinTest, dynamicFilterOnPartitionKey) {
   auto planNodeIdGenerator = std::make_shared<core::PlanNodeIdGenerator>();
   auto op =
       PlanBuilder(planNodeIdGenerator)
-          .startTableScan()
-          .outputType(outputType)
+          .startTableScan(outputType)
           .assignments(assignments)
           .endTableScan()
           .capturePlanNodeId(probeScanId)

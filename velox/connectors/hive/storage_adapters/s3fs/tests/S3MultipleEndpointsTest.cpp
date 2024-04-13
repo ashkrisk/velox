@@ -142,18 +142,16 @@ TEST_F(S3MultipleEndpoints, s3Join) {
   core::PlanNodeId scan1, scan2;
   auto planNodeIdGenerator = std::make_shared<core::PlanNodeIdGenerator>();
   auto table1Scan = PlanBuilder(planNodeIdGenerator, pool())
-                        .startTableScan()
+                        .startTableScan(rowType1)
                         .tableName("hive_table1")
-                        .outputType(rowType1)
                         .connectorId(std::string(kConnectorId1))
                         .endTableScan()
                         .capturePlanNodeId(scan1)
                         .planNode();
   auto join =
       PlanBuilder(planNodeIdGenerator, pool())
-          .startTableScan()
+          .startTableScan(rowType2)
           .tableName("hive_table1")
-          .outputType(rowType2)
           .connectorId(std::string(kConnectorId2))
           .endTableScan()
           .capturePlanNodeId(scan2)
