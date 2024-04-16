@@ -16,6 +16,19 @@ class SampleTableHandle : public ConnectorTableHandle {
 };
 
 class SampleColumnHandle : public ColumnHandle {
+ public:
+  explicit SampleColumnHandle(std::string colName) : name_{std::move(colName)} {
+    VELOX_CHECK(
+      name_ == "id" || name_ == "value",
+      "invalid SampleColumnHandle '{}', must be one of [id, value]",
+      name_
+    );
+  };
+  const std::string& name() {
+    return name_;
+  }
+ private:
+  const std::string name_;
 };
 
 class SampleDataSource : public DataSource {
@@ -62,12 +75,19 @@ class SampleDataSource : public DataSource {
 
     std::vector<VectorPtr> children;
     for (auto const& col : columns_) {
-      auto vec = BaseVector::create<FlatVector<int64_t>>(BIGINT(), 1, pool_);
-      vec->set(0, 42);
+      auto vec = BaseVector::create<FlatVector<int64_t>>(BIGINT(), 2, pool_);
+      if (col->name() == "id") {
+        vec->set(0, 1);
+        vec->set(1, 2);
+      }
+      else {
+        vec->set(0, 41);
+        vec->set(1, 42);
+      }
       children.push_back(std::move(vec));
     }
     return std::make_shared<RowVector>(
-        pool_, outputType_, BufferPtr(nullptr), 1, children);
+        pool_, outputType_, BufferPtr(nullptr), 2, children);
   }
   void addDynamicFilter(
       column_index_t outputChannel,
