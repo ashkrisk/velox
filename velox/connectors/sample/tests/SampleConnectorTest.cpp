@@ -87,7 +87,7 @@ TEST_F(SampleConnectorTest, EmptyTest) {
   auto plan = exec::test::PlanBuilder()
       .startTableScan()
       .connectorId(kSampleConnectorId)
-      // .outputType(std::make_shared<RowType>(std::vector<std::string>{"data"}, std::vector<std::shared_ptr<const Type>>{HUGEINT()})) // Segfaults if not set
+      // .outputType(std::make_shared<RowType>(std::vector<std::string>{"data"}, std::vector<std::shared_ptr<const Type>>{BIGINT()})) // Segfaults if not set
       .outputType(std::make_shared<RowType>(std::vector<std::string>{}, std::vector<std::shared_ptr<const Type>>{})) // Segfaults if not set
       .tableHandle(std::make_shared<SampleTableHandle>("sample-test")) // uses HiveTableHandle by default
       // .assignments(std::unordered_map<std::string, std::shared_ptr<ColumnHandle>>{{"data", std::shared_ptr<ColumnHandle>{}}})  // uses HiveColumnHandle by default
@@ -108,13 +108,13 @@ TEST_F(SampleConnectorTest, EmptyTest) {
   // test::assertEqualVectors(results, makeRowVector({}));
 }
 
-TEST_F(SampleConnectorTest, DataTest) {
+TEST_F(SampleConnectorTest, ColumnHandleTest) {
   auto plan = exec::test::PlanBuilder()
       .startTableScan()
       .connectorId(kSampleConnectorId)
       .outputType(std::make_shared<RowType>(
           std::vector<std::string>{"id"},
-          std::vector<std::shared_ptr<const Type>>{HUGEINT()}))
+          std::vector<std::shared_ptr<const Type>>{BIGINT()}))
       .tableHandle(std::make_shared<SampleTableHandle>("sample-test"))
       // assignments cannot be empty because PlanBuilder will create assignments
       // using HiveColumnHandles by default
@@ -135,7 +135,7 @@ TEST_F(SampleConnectorTest, DataTest) {
       .connectorId(kSampleConnectorId)
       .outputType(std::make_shared<RowType>(
           std::vector<std::string>{"id"},
-          std::vector<std::shared_ptr<const Type>>{HUGEINT()}))
+          std::vector<std::shared_ptr<const Type>>{BIGINT()}))
       .tableHandle(std::make_shared<SampleTableHandle>("sample-test"))
       .assignments({{"id", std::shared_ptr<ColumnHandle>{}}})
       .endTableScan()
@@ -149,6 +149,23 @@ TEST_F(SampleConnectorTest, DataTest) {
           .assertEmptyResults(),
       "not a SampleColumnHandle"
   )
+
+  plan = exec::test::PlanBuilder()
+      .startTableScan()
+      .connectorId(kSampleConnectorId)
+      .outputType(std::make_shared<RowType>(
+          std::vector<std::string>{"id"},
+          std::vector<std::shared_ptr<const Type>>{BIGINT()}))
+      .tableHandle(std::make_shared<SampleTableHandle>("sample-test"))
+      .assignments({{"id", std::make_shared<SampleColumnHandle>()}})
+      .endTableScan()
+      .planNode();
+  
+  exec::test::AssertQueryBuilder(plan)
+      .splits(std::vector<std::shared_ptr<ConnectorSplit>>{
+        std::make_shared<ConnectorSplit>("sample-test")
+      })
+      .assertResults(makeRowVector({makeFlatVector(std::vector<int64_t>{42})}));
 }
 
 } // namespace

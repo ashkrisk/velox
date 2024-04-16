@@ -1,6 +1,7 @@
 #pragma once
 
 #include "velox/connectors/Connector.h"
+#include "velox/vector/FlatVector.h"
 
 namespace facebook::velox::connector::sample {
 
@@ -25,7 +26,6 @@ class SampleDataSource : public DataSource {
       memory::MemoryPool* pool)
       : outputType_{std::move(outputType)}, assignments_{assignments}, pool_{pool} {
     VELOX_CHECK_NOT_NULL(pool);
-    std::vector<std::shared_ptr<SampleColumnHandle>> columns{};
     for (auto const& colName : outputType_->names()) {
       auto it = assignments_.find(colName);
       VELOX_CHECK(
@@ -40,7 +40,7 @@ class SampleDataSource : public DataSource {
           sampleColumn,
           "column handle for column with alias '{}' is not a SampleColumnHandle",
           colName);
-      columns.push_back(std::dynamic_pointer_cast<SampleColumnHandle>(it->second));
+      columns_.push_back(std::dynamic_pointer_cast<SampleColumnHandle>(it->second));
     }
   }
 
@@ -56,7 +56,18 @@ class SampleDataSource : public DataSource {
       return nullptr;
     }
     completed_ += 1;
-    return RowVector::createEmpty(outputType_, pool_);
+    if (columns_.size() <= 0) {
+      return RowVector::createEmpty(outputType_, pool_);
+    }
+
+    std::vector<VectorPtr> children;
+    for (auto const& col : columns_) {
+      auto vec = BaseVector::create<FlatVector<int64_t>>(BIGINT(), 1, pool_);
+      vec->set(0, 42);
+      children.push_back(std::move(vec));
+    }
+    return std::make_shared<RowVector>(
+        pool_, outputType_, BufferPtr(nullptr), 1, children);
   }
   void addDynamicFilter(
       column_index_t outputChannel,
@@ -82,6 +93,7 @@ class SampleDataSource : public DataSource {
   memory::MemoryPool* const pool_;
   int splits_ = 0;
   int completed_ = 0;
+  std::vector<std::shared_ptr<SampleColumnHandle>> columns_;
 };
 
 class SampleConnector : public Connector {
@@ -96,7 +108,7 @@ class SampleConnector : public Connector {
           std::shared_ptr<connector::ColumnHandle>>& columnHandles,
       ConnectorQueryCtx* connectorQueryCtx) {
     // VELOX_NYI("not implemented yet");
-    VELOX_DCHECK_NOT_NULL(connectorQueryCtx)
+    VELOX_CHECK_NOT_NULL(connectorQueryCtx)
     return std::make_unique<SampleDataSource>(
         outputType, columnHandles, connectorQueryCtx->memoryPool());
   }
