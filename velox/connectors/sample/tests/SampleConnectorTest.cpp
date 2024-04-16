@@ -7,6 +7,7 @@
 #include "velox/exec/tests/utils/PlanBuilder.h"
 #include "velox/exec/tests/utils/AssertQueryBuilder.h"
 #include "velox/exec/tests/utils/OperatorTestBase.h"
+#include "velox/common/base/tests/GTestUtils.h"
 
 namespace {
 
@@ -16,9 +17,23 @@ using namespace facebook::velox::connector::sample;
 using namespace testing;
 
 class SampleConnectorTest : public exec::test::OperatorTestBase {
+ public:
+  static constexpr const char* kSampleConnectorId = "sample-test";
+
+  SampleConnectorTest() {
+    auto factory = connector::getConnectorFactory(
+        SampleConnectorFactory::kSampleConnectorName);
+    registerConnector(factory->newConnector(
+        kSampleConnectorId,
+        std::make_shared<core::MemConfig>()));
+  }
+
+  ~SampleConnectorTest() {
+    unregisterConnector(kSampleConnectorId);
+  }
 };
 
-TEST_F(SampleConnectorTest, FactoryTest) {
+TEST(SampleConnectorCreationTest, FactoryTest) {
   auto factory = connector::getConnectorFactory(
       SampleConnectorFactory::kSampleConnectorName);
   // EXPECT_THAT(
@@ -31,17 +46,10 @@ TEST_F(SampleConnectorTest, FactoryTest) {
       "sample-test", std::make_shared<core::MemConfig>()));
 }
 
-TEST_F(SampleConnectorTest, ConnectorTest) {
-  auto factory = connector::getConnectorFactory(
-      SampleConnectorFactory::kSampleConnectorName);
-  auto connector =
-      factory->newConnector("sample-test", std::make_shared<core::MemConfig>());
-
-  registerConnector(connector);
-
+TEST_F(SampleConnectorTest, DataSinkTest) {
   EXPECT_THAT(
-      [&connector]() {
-        connector->createDataSink(
+      []() {
+        getConnector(kSampleConnectorId)->createDataSink(
             RowTypePtr{},
             std::shared_ptr<ConnectorInsertTableHandle>{},
             nullptr,
@@ -49,6 +57,26 @@ TEST_F(SampleConnectorTest, ConnectorTest) {
       },
       Throws<VeloxRuntimeError>(Property(
           &VeloxRuntimeError::errorCode, StrEq(error_code::kNotImplemented))));
+}
+
+TEST_F(SampleConnectorTest, EmptyTest) {
+  // auto factory = connector::getConnectorFactory(
+  //     SampleConnectorFactory::kSampleConnectorName);
+  // auto connector =
+  //     factory->newConnector("sample-test", std::make_shared<core::MemConfig>());
+
+  // registerConnector(connector);
+
+  // EXPECT_THAT(
+  //     [&connector]() {
+  //       connector->createDataSink(
+  //           RowTypePtr{},
+  //           std::shared_ptr<ConnectorInsertTableHandle>{},
+  //           nullptr,
+  //           CommitStrategy::kNoCommit);
+  //     },
+  //     Throws<VeloxRuntimeError>(Property(
+  //         &VeloxRuntimeError::errorCode, StrEq(error_code::kNotImplemented))));
 
   // connector->createDataSource(
   //     RowTypePtr{},
@@ -58,7 +86,7 @@ TEST_F(SampleConnectorTest, ConnectorTest) {
     
   auto plan = exec::test::PlanBuilder()
       .startTableScan()
-      .connectorId("sample-test")
+      .connectorId(kSampleConnectorId)
       // .outputType(std::make_shared<RowType>(std::vector<std::string>{"data"}, std::vector<std::shared_ptr<const Type>>{HUGEINT()})) // Segfaults if not set
       .outputType(std::make_shared<RowType>(std::vector<std::string>{}, std::vector<std::shared_ptr<const Type>>{})) // Segfaults if not set
       .tableHandle(std::make_shared<SampleTableHandle>("sample-test")) // uses HiveTableHandle by default
@@ -67,13 +95,60 @@ TEST_F(SampleConnectorTest, ConnectorTest) {
       .endTableScan()
       .planNode();
 
-  auto results = exec::test::AssertQueryBuilder(plan)
+  exec::test::AssertQueryBuilder(plan)
+      .splits(std::vector<std::shared_ptr<ConnectorSplit>>{})
+      .assertEmptyResults();
+  
+  exec::test::AssertQueryBuilder(plan)
       .splits(std::vector<std::shared_ptr<ConnectorSplit>>{std::make_shared<ConnectorSplit>("sample-test")}) // waits infinitely if this function is not called (empty splits ok)
       // .assertResults(makeRowVector({makeFlatVector(std::vector<int64_t>{42})}));
       .assertEmptyResults();
       // .copyResults(pool());
-
+  
   // test::assertEqualVectors(results, makeRowVector({}));
+}
+
+TEST_F(SampleConnectorTest, DataTest) {
+  auto plan = exec::test::PlanBuilder()
+      .startTableScan()
+      .connectorId(kSampleConnectorId)
+      .outputType(std::make_shared<RowType>(
+          std::vector<std::string>{"id"},
+          std::vector<std::shared_ptr<const Type>>{HUGEINT()}))
+      .tableHandle(std::make_shared<SampleTableHandle>("sample-test"))
+      // assignments cannot be empty because PlanBuilder will create assignments
+      // using HiveColumnHandles by default
+      .assignments({{"placeholder", std::shared_ptr<ColumnHandle>{}}})
+      .endTableScan()
+      .planNode();
+  
+  VELOX_ASSERT_THROW(
+      exec::test::AssertQueryBuilder(plan)
+          .splits(std::vector<std::shared_ptr<ConnectorSplit>>{
+            std::make_shared<ConnectorSplit>("sample-test")
+          })
+          .assertEmptyResults(),
+      "columnHandle is missing for output column");
+  
+  plan = exec::test::PlanBuilder()
+      .startTableScan()
+      .connectorId(kSampleConnectorId)
+      .outputType(std::make_shared<RowType>(
+          std::vector<std::string>{"id"},
+          std::vector<std::shared_ptr<const Type>>{HUGEINT()}))
+      .tableHandle(std::make_shared<SampleTableHandle>("sample-test"))
+      .assignments({{"id", std::shared_ptr<ColumnHandle>{}}})
+      .endTableScan()
+      .planNode();
+  
+  VELOX_ASSERT_THROW(
+      exec::test::AssertQueryBuilder(plan)
+          .splits(std::vector<std::shared_ptr<ConnectorSplit>>{
+            std::make_shared<ConnectorSplit>("sample-test")
+          })
+          .assertEmptyResults(),
+      "not a SampleColumnHandle"
+  )
 }
 
 } // namespace
