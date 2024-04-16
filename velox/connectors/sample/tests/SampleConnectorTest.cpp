@@ -50,24 +50,30 @@ TEST_F(SampleConnectorTest, ConnectorTest) {
       Throws<VeloxRuntimeError>(Property(
           &VeloxRuntimeError::errorCode, StrEq(error_code::kNotImplemented))));
 
-  connector->createDataSource(
-      RowTypePtr{},
-      std::shared_ptr<ConnectorTableHandle>{},
-      std::unordered_map<std::string, std::shared_ptr<ColumnHandle>>{},
-      nullptr);
+  // connector->createDataSource(
+  //     RowTypePtr{},
+  //     std::shared_ptr<ConnectorTableHandle>{},
+  //     std::unordered_map<std::string, std::shared_ptr<ColumnHandle>>{},
+  //     nullptr);
     
   auto plan = exec::test::PlanBuilder()
       .startTableScan()
       .connectorId("sample-test")
+      // .outputType(std::make_shared<RowType>(std::vector<std::string>{"data"}, std::vector<std::shared_ptr<const Type>>{HUGEINT()})) // Segfaults if not set
       .outputType(std::make_shared<RowType>(std::vector<std::string>{}, std::vector<std::shared_ptr<const Type>>{})) // Segfaults if not set
       .tableHandle(std::make_shared<SampleTableHandle>("sample-test")) // uses HiveTableHandle by default
+      // .assignments(std::unordered_map<std::string, std::shared_ptr<ColumnHandle>>{{"data", std::shared_ptr<ColumnHandle>{}}})  // uses HiveColumnHandle by default
       .assignments({})  // uses HiveColumnHandle by default
       .endTableScan()
       .planNode();
 
-  exec::test::AssertQueryBuilder(plan)
-      .splits(std::vector<exec::Split>{}) // waits infinitely if splits are not provided
+  auto results = exec::test::AssertQueryBuilder(plan)
+      .splits(std::vector<std::shared_ptr<ConnectorSplit>>{std::make_shared<ConnectorSplit>("sample-test")}) // waits infinitely if this function is not called (empty splits ok)
+      // .assertResults(makeRowVector({makeFlatVector(std::vector<int64_t>{42})}));
       .assertEmptyResults();
+      // .copyResults(pool());
+
+  // test::assertEqualVectors(results, makeRowVector({}));
 }
 
 } // namespace
