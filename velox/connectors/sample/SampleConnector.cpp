@@ -6,25 +6,26 @@ namespace facebook::velox::connector::sample {
 SampleColumnHandle::SampleColumnHandle(std::string colName)
     : name_{std::move(colName)} {
   VELOX_CHECK(
-    name_ == "id" || name_ == "value",
-    "invalid SampleColumnHandle '{}', must be one of [id, value]",
-    name_
-  );
+      name_ == "id" || name_ == "value",
+      "invalid SampleColumnHandle '{}', must be one of [id, value]",
+      name_);
 }
 
 SampleDataSource::SampleDataSource(
     RowTypePtr outputType,
-    const std::unordered_map<std::string, std::shared_ptr<ColumnHandle>>& assignments,
+    const std::unordered_map<std::string, std::shared_ptr<ColumnHandle>>&
+        assignments,
     memory::MemoryPool* pool)
-    : outputType_{std::move(outputType)}, assignments_{assignments}, pool_{pool} {
+    : outputType_{std::move(outputType)},
+      assignments_{assignments},
+      pool_{pool} {
   VELOX_CHECK_NOT_NULL(pool);
   for (auto const& colName : outputType_->names()) {
     auto it = assignments_.find(colName);
     VELOX_CHECK(
-      it != assignments_.end(),
-      "columnHandle is missing for output column {}",
-      colName
-    );
+        it != assignments_.end(),
+        "columnHandle is missing for output column {}",
+        colName);
 
     auto sampleColumn =
         std::dynamic_pointer_cast<SampleColumnHandle>(it->second);
@@ -32,7 +33,8 @@ SampleDataSource::SampleDataSource(
         sampleColumn,
         "column handle for column with alias '{}' is not a SampleColumnHandle",
         colName);
-    columns_.push_back(std::dynamic_pointer_cast<SampleColumnHandle>(it->second));
+    columns_.push_back(
+        std::dynamic_pointer_cast<SampleColumnHandle>(it->second));
   }
 }
 
@@ -58,8 +60,7 @@ std::optional<RowVectorPtr> SampleDataSource::next(
     if (col->name() == "id") {
       vec->set(0, 1);
       vec->set(1, 2);
-    }
-    else {
+    } else {
       vec->set(0, 41);
       vec->set(1, 42);
     }

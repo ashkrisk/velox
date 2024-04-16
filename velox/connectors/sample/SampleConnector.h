@@ -4,11 +4,6 @@
 
 namespace facebook::velox::connector::sample {
 
-// class SampleConnectorSplit : public ConnectorSplit {
-//   public:
-//     SampleConnectorSplit(std::string id) : ConnectorSplit(id) {}
-// };
-
 class SampleTableHandle : public ConnectorTableHandle {
  public:
   SampleTableHandle(std::string id) : ConnectorTableHandle(std::move(id)) {}
@@ -30,7 +25,8 @@ class SampleDataSource : public DataSource {
  public:
   SampleDataSource(
       RowTypePtr outputType,
-      const std::unordered_map<std::string, std::shared_ptr<ColumnHandle>>& assignments,
+      const std::unordered_map<std::string, std::shared_ptr<ColumnHandle>>&
+          assignments,
       memory::MemoryPool* pool);
 
   void addSplit(std::shared_ptr<ConnectorSplit> split);
@@ -62,7 +58,8 @@ class SampleDataSource : public DataSource {
 
  private:
   const RowTypePtr outputType_;
-  const std::unordered_map<std::string, std::shared_ptr<ColumnHandle>>& assignments_;
+  const std::unordered_map<std::string, std::shared_ptr<ColumnHandle>>&
+      assignments_;
   memory::MemoryPool* const pool_;
   int splits_ = 0;
   int completed_ = 0;
